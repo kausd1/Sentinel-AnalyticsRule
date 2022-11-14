@@ -1,0 +1,68 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workspace": {
+            "type": "String"
+        }
+    },
+    "resources": [
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/c3dc3343-2ba8-4c6c-aff4-dac512cc28bf')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/c3dc3343-2ba8-4c6c-aff4-dac512cc28bf')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "NRT",
+            "apiVersion": "2022-10-01-preview",
+            "properties": {
+                "displayName": "Secure transfer to storage accounts should be enabled-Audit",
+                "description": "",
+                "severity": "Medium",
+                "enabled": true,
+                "query": "let policy=AzureActivity\r\n| where OperationNameValue == 'MICROSOFT.AUTHORIZATION/POLICIES/AUDIT/ACTION' and ResourceProviderValue == \"MICROSOFT.STORAGE\";\r\nlet actvity=AzureActivity\r\n  | where OperationNameValue == 'MICROSOFT.STORAGE/STORAGEACCOUNTS/WRITE' and ActivityStatusValue == \"Start\"\r\n  | extend Properties_parse=parse_json(tostring(parse_json(Properties_d).requestbody)).properties\r\n  | extend Properties_parse_value=parse_json(Properties_parse.supportsHttpsTrafficOnly)\r\n  | where Properties_parse_value ==\"false\";\r\n  policy | join actvity on CorrelationId\r\n  |project Diagdelete = TimeGenerated, Caller, ResourceProviderValue, _ResourceId, SubscriptionId, ResourceGroup, OperationNameValue, administrative_action=ActivityStatusValue,policy_status_value=ActivityStatusValue1, ActivitySubstatusValue, CallerIpAddress",
+                "suppressionDuration": "PT5H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": true,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5H",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": [],
+                        "groupByCustomDetails": []
+                    }
+                },
+                "alertDetailsOverride": null,
+                "customDetails": {
+                    "Policy_Status": "policy_status_value",
+                    "administrative_act": "administrative_action"
+                },
+                "entityMappings": [
+                    {
+                        "entityType": "IP",
+                        "fieldMappings": [
+                            {
+                                "identifier": "Address",
+                                "columnName": "CallerIpAddress"
+                            }
+                        ]
+                    },
+                    {
+                        "entityType": "Account",
+                        "fieldMappings": [
+                            {
+                                "identifier": "FullName",
+                                "columnName": "Caller"
+                            }
+                        ]
+                    }
+                ],
+                "sentinelEntitiesMappings": null
+            }
+        }
+    ]
+}
